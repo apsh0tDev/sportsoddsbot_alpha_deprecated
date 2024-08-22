@@ -91,7 +91,6 @@ async def scrape_event_alt(match_id):
         return "ERROR" 
 
 async def tidy_up_and_sort(load):
-    print(load)
     if 'attchments' in load:
         if 'attachments' in load and 'events' in load['attachments']:
             event_key = [key for key in load['attachments']['events']]

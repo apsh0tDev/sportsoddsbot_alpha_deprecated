@@ -32,26 +32,29 @@ async def arbitrage_notification(arbitrage_data):
         if len(search.data) > 0:
             db.table("arbitrages").update({"notification_id" : message.id}).match({"uuID" : arbitrage_uuID}).execute()
 
-async def edit_message(arbitrage_data):
-    
+async def edit_message(arbitrage_data, close_match=False):
     if arbitrage_data['notification_id'] != None:
-        async with aiohttp.ClientSession() as session:
-            webhook = discord.Webhook.from_url(WEBHOOK_URL, session=session)
-            past_message = await webhook.fetch_message(arbitrage_data['notification_id'])
-            updated_message = await format_message(arbitrage_data)
-            await past_message.edit(content=updated_message)
+        if close_match == False:
+            
+                async with aiohttp.ClientSession() as session:
+                    webhook = discord.Webhook.from_url(WEBHOOK_URL, session=session)
+                    past_message = await webhook.fetch_message(arbitrage_data['notification_id'])
+                    updated_message = await format_message(arbitrage_data)
+                    await past_message.edit(content=updated_message)
+        else:
+            await close_match_action(arbitrage_data['notification_id'])
   
 
 async def format_message(arbitrage_data):
     match_name = arbitrage_data['match_name']
     teamA_name, teamB_name = match_name.split('-')
     teamA_odds = arbitrage_data['teamA']['decimalOdds']
-    teamA_source = arbitrage_data['teamA']['source']
+    teamA_source = await get_source(arbitrage_data['teamA']['source']) 
     teamB_odds = arbitrage_data['teamB']['decimalOdds']
-    teamB_source = arbitrage_data['teamB']['source']
+    teamB_source = await get_source(arbitrage_data['teamB']['source']) 
     teamA_status = arbitrage_data['teamA']['isOpen']
     teamB_status = arbitrage_data['teamB']['isOpen']
-    market = arbitrage_data['market'] if arbitrage_data['market'] else '(Not specified)'
+    market = arbitrage_data['market']
     utc_time = datetime.strptime(arbitrage_data['created_at'], '%Y-%m-%dT%H:%M:%S.%f%z')
     arbitrage_percentage = float(arbitrage_data['arbitrage_percentage'])
     ny_tz = pytz.timezone('America/New_York')
@@ -72,5 +75,25 @@ async def format_message(arbitrage_data):
 
     return message
 
+async def close_match_action(notification_id):
+    print("Close this match: ", notification_id)
+    async with aiohttp.ClientSession() as session:
+        webhook = discord.Webhook.from_url(WEBHOOK_URL, session=session)
+        past_message = await webhook.fetch_message(notification_id)
+        lines = past_message.content.split('\n')
+        lines.remove("🎯 **New Arbitrage Opportunity Detected!**")
+        lines.insert(0,"**⛔ Match ended. **")
+        output = "\n".join(lines)
+        await past_message.edit(content=output)
+    response = db.table("arbitrages").delete().eq("notification_id", notification_id).execute()
+    print(response)
+
+#-- Utils
+async def get_source(source_name):
+    if source_name == "Pointsbet":
+        return "Resorts World Bet (Fanatics)"
+    else:
+        return source_name
+
 if __name__ == "__main__":
-    asyncio.run(edit_message())
+    asyncio.run()

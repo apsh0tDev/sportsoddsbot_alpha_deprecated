@@ -25,7 +25,7 @@ async def live_odds():
     tasks = [
         lines_betmgm.scrape_events(),
         lines_pointsbet.scrape_events(),
-        #lines_fanduel.scrape_events()
+        lines_fanduel.scrape_events()
     ]
 
     await asyncio.gather(*tasks)
