@@ -73,9 +73,11 @@ async def tidy_up_matches_partial(load):
     matches_list = db.table("matches_list").select("*").eq("source", "BetMGM").execute()
     matches_names = [item['match_name'] for item in matches_list.data]
 
+    events_ids = []
     if 'events' in load:
         for event in load['events']:
             if event['isLive'] == True:
+                events_ids.append(events_ids)
                 info = await set_default_info(event)
                 to_match = { "match_id" : info['match_id'], "match_name" : info['match_name'], "source" : "Pointsbet" }
                 for item in matches_names:
@@ -87,6 +89,8 @@ async def tidy_up_matches_partial(load):
                         else:
                             response = await upload(table="matches_list", info=info)
                             print(response)
+    await cleaners(events_ids)
+    
 
 # -- Cleaners 🧹
 async def cleaners(data):

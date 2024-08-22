@@ -45,7 +45,7 @@ async def scrape_data_backup():
     if is_valid:
         load = json.loads(response)
         await tidy_up_matches_partial(load)
-        await tidy_up_all_matches(load)
+        #await tidy_up_all_matches(load)
         db.table("sportsbooks").update({'available' : True}).eq("name", "FanDuel").execute()
     else:
         logger.error(f"Could not retrieve anything from FanDuel.")
