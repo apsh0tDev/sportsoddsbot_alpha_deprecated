@@ -50,44 +50,6 @@ async def match_winner():
     response = db.table("match_winner").select("*").execute()
      #Group matches by name for later comparison
     groups = await group_matches(response.data)
-    data_with_arbitrage = [
-        {
-            'match_name': 'Wolf, JJ - Crawford, O',
-            'odds': [
-                {
-                    'source': 'Pointsbet',
-                    'teamA': {'name': 'Jeffrey John Wolf', 'decimalOdds': 1.75, 'americanOdds': -133},
-                    'teamB': {'name': 'Oliver Crawford', 'decimalOdds': 2.25, 'americanOdds': 125},
-                    'isOpen': False
-                },
-                {
-                    'source': 'BetMGM',
-                    'teamA': {'name': 'Jeffrey John Wolf', 'decimalOdds': 1.85, 'americanOdds': -118},
-                    'teamB': {'name': 'Oliver Crawford', 'decimalOdds': 2.10, 'americanOdds': 110},
-                    'isOpen': False
-                }
-            ]
-        },
-        {
-            'match_name': 'Prizmic, D - Ajdukovic, D',
-            'odds': [
-                {
-                    'source': 'Pointsbet',
-                    'teamA': {'name': 'Dino Prizmic', 'decimalOdds': 2.15, 'americanOdds': 115},
-                    'teamB': {'name': 'Duje Ajdukovic', 'decimalOdds': 1.95, 'americanOdds': -105},
-                    'isOpen': False
-                },
-                {
-                    'source': 'BetMGM',
-                    'teamA': {'name': 'Dino Prizmic', 'decimalOdds': 2.40, 'americanOdds': 140},
-                    'teamB': {'name': 'Duje Ajdukovic', 'decimalOdds': 1.85, 'americanOdds': -118},
-                    'isOpen': False
-                }
-            ]
-        }
-    ]
-
-
 
     arbitrages = await calculate_arbitrage(odds=groups, market="Match Winner")
     if len(arbitrages) > 0:
@@ -126,7 +88,6 @@ async def group_matches(matches, similarity_threshold=70):
                     'isOpen' : match['isOpen']
                 }]
             })
-
     return grouped_matches
 
 #======== ARBITRAGE CALCULATOR =======
@@ -145,22 +106,20 @@ async def calculate_arbitrage(odds, market):
                 # Safely extract the decimal odds
                 teamA_odds = odds['teamA'].get('odds', odds['teamA']).get('decimalOdds')
                 teamB_odds = odds['teamB'].get('odds', odds['teamB']).get('decimalOdds')
-                teamA_status = odds['teamA'].get('odds', odds['teamA']).get('isOpen')
-                teamB_status = odds['teamB'].get('odds', odds['teamB']).get('isOpen')
-
+                
                 # Ensure that teamA_odds and teamB_odds are not None and are valid numbers
                 if teamA_odds is not None and (best_odds_teamA is None or teamA_odds > best_odds_teamA['decimalOdds']):
                     best_odds_teamA = {
                         'source': odds['source'],
-                        'decimalOdds': teamA_odds,
-                        'isOpen' : teamA_status
+                        'decimalOdds': round(teamA_odds, 2),
+                        'isOpen' : odds['isOpen']
                     }
 
                 if teamB_odds is not None and (best_odds_teamB is None or teamB_odds > best_odds_teamB['decimalOdds']):
                     best_odds_teamB = {
                         'source': odds['source'],
-                        'decimalOdds': teamB_odds,
-                        'isOpen' : teamB_status
+                        'decimalOdds': round(teamB_odds, 2),
+                        'isOpen' : odds['isOpen']
                     }
 
 
@@ -184,7 +143,6 @@ async def check_arbitrages():
     # Fetch all records from the arbitrages table
     response = db.table("arbitrages").select("*").execute()
     arbs_table = response.data if response.data else []
-    print(arbs_table)
 
     current_time = datetime.now(timezone.utc)
     two_minutes_ago = current_time - timedelta(minutes=2)
@@ -192,11 +150,24 @@ async def check_arbitrages():
     for arbitrage in arbs_table:
         created_at = datetime.fromisoformat(arbitrage['created_at'].replace('Z', '+00:00'))
         arbitrage_percentage = float(arbitrage['arbitrage_percentage'])
-        if created_at > two_minutes_ago and arbitrage_percentage > 1.2 and arbitrage['notification_id'] == None:
+        if created_at > two_minutes_ago and arbitrage['teamA']['isOpen'] and arbitrage['teamB']['isOpen'] and arbitrage['notification_id'] == None:
             print(f"Arbitrage opportunity for match '{arbitrage['match_name']}' has been there for more than 2 minutes.")
             print(arbitrage)
             logger.bind(arbitrage=True).info(f'Arbitrage opportunity for match: {arbitrage['match_name']} {arbitrage['id']}')
             await arbitrage_notification(arbitrage_data=arbitrage)
+
+async def clean_arbitrages():
+    arbitrages = db.table("arbitrages").select("*").execute()
+    matches = db.table("matches_list").select("*").execute()
+    matches_names = [item['match_name'].strip() for item in matches.data]
+    print("Run arbitrages cleaners 🧹")
+    for arb in arbitrages.data:
+        arb_match_name = arb['match_name'].split('vs')
+        arb_match_name = ('-').join(arb_match_name)
+        if arb_match_name not in matches_names:
+            await edit_message(arb, True)
+        
+    
 
 #======== DB Actions =======
 async def db_actions(arbitrages):
@@ -210,8 +181,6 @@ async def db_actions(arbitrages):
             matching_arbitrage = next(item for item in arbs_data if item['match_name'] == arbitrage['match_name'])
             
             # Update existing arbitrage record
-            print(arbitrage['teamA'])
-            print(arbitrage['teamB'])
             res = db.table("arbitrages").update({
                 'teamA': arbitrage['teamA'],
                 'teamB': arbitrage['teamB'],
@@ -231,7 +200,7 @@ async def db_actions(arbitrages):
             updated_arbitrage_data['teamB']['isOpen'] = arbitrage['teamB']['isOpen']
             
             # Pass the updated arbitrage data to edit_message
-            await edit_message(updated_arbitrage_data)
+            await edit_message(updated_arbitrage_data, False)
         else:
             # Insert new arbitrage record
             res = db.table("arbitrages").insert({
@@ -250,6 +219,7 @@ async def call_get_markets_every_20_seconds():
     while True:
         await call_all_markets()
         await check_arbitrages()
+        await clean_arbitrages()
         print("Running...")
         await asyncio.sleep(20)
 

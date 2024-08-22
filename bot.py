@@ -51,7 +51,7 @@ async def on_command_error(ctx: commands.Context, error):
 #======= Bot Tasks =========
 @tasks.loop(minutes=15)
 async def status_checker():
-    matches = db.table("live_matches").select("*").execute()
+    matches = db.table("matches_list").select("*").execute()
     if len(matches.data) == 0:
         await bot.change_presence(
             status=discord.Status.idle,
