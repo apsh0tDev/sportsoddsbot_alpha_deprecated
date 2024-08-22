@@ -35,3 +35,27 @@ async def scrape_b_u(url, site):
     except Exception as e:
         print(e)
         return None
+    
+async def scrape_by_site(url, site, headless):
+    logger.info(f"Scraping from {site} - Using Alt")
+    token = await get_token(site)
+    client = ScrapingAntClient(token=token)
+    try:
+        result = client.general_request(url, proxy_country='US', browser=headless)
+        if result.status_code == 200:
+            return result.content
+        else:
+            print(result.content)
+            return None 
+    except Exception as e:
+        print(e)
+        return None    
+    
+async def get_token(site):
+    match site:
+        case "DRAFTKINGS":
+            key = os.getenv("SAT_DK")
+            return key
+        case "FANDUEL":
+            key = os.getenv("FANDUEL_SAT")
+            return key

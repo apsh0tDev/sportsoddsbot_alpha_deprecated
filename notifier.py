@@ -64,6 +64,7 @@ async def format_message(arbitrage_data):
     teamB_message = f"- **{teamB_name.strip()}:** {teamB_odds} ({teamB_source})\n" if teamB_status == True else f"- ~~**{teamB_name}:** {teamB_odds} ({teamB_source})~~ 🔒\n"
     message = (
         "🎯 **New Arbitrage Opportunity Detected!**\n\n"
+        f"**🎾 Tennis**\n"
         f"**Match:** {teamA_name} vs. {teamB_name}\n"
         f"**Market:** {market}\n"
         "**Odds Breakdown:**\n"
