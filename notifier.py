@@ -7,10 +7,11 @@ from db import db
 from loguru import logger
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
+from utils import get_current_ny_time
 
 load_dotenv()
 
-current_branch = "PROD"
+current_branch = "DEV"
 
 def get_token():
     if current_branch == "DEV":
@@ -88,6 +89,22 @@ async def close_match_action(notification_id):
         await past_message.edit(content=output)
     response = db.table("arbitrages").delete().eq("notification_id", notification_id).execute()
     print(response)
+
+async def glitch_notifier_fanduel(glitches, match_name, current_set):
+    markets = [item['market_name'] for item in glitches]
+    output = "\n".join(markets)
+    text = (
+        "👾 **Glitch found in FanDuel!**\n\n"
+        f"**Match:** {match_name}\n"
+        f"**Current Set on 365Scores: {current_set}**\n"
+        f"**Line(s):** \n"
+        f"{output}\n\n"
+        f"**Time:** {get_current_ny_time()}"
+    )
+    async with aiohttp.ClientSession() as session:
+        webhook = discord.Webhook.from_url(WEBHOOK_URL, session=session)
+        message = await webhook.send(text, username='Odds Bot', wait=True)
+        print(message.id)
 
 #-- Utils
 async def get_source(source_name):
