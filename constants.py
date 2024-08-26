@@ -18,6 +18,7 @@ pointsbet_url = "https://api.rw.pointsbet.com/api/v2/competitions/{competitionId
 pointsbet_event_url = "https://api.rw.pointsbet.com/api/mes/v3/events/{eventId}"
 
 #FaDuel
+fanduel_live_url = f"https://sbapi.nj.sportsbook.fanduel.com/api/in-play?timezone=America%2FNew_York&eventTypeId=2&includeTabs=false&_ak=FhMFpcPWXMeyZxOx"
 fanduel_url = f"https://sbapi.ny.sportsbook.fanduel.com/api/content-managed-page?page=SPORT&eventTypeId=2&_ak=FhMFpcPWXMeyZxOx&timezone=America%2FNew_York"
 fanduel_event_url = "https://sbapi.ny.sportsbook.fanduel.com/api/event-page?_ak=FhMFpcPWXMeyZxOx&eventId={id}&tab={tab}&useCombinedTouchdownsVirtualMarket=true&usePulse=true&useQuickBets=true"
 

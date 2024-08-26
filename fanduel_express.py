@@ -15,12 +15,13 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 scheduler = AsyncIOScheduler()
 
 async def scrape_data():
-    response = await scrape_by_site(constants.fanduel_url, "FANDUEL", False)
+    response = await scrape_by_site(constants.fanduel_live_url, "FANDUEL", False)
     if response != None or response != '':
         is_valid = await verifier_alt(response)
         if is_valid:
             load = json.loads(response)
             await sort_matches(load=load)
+
 
 async def sort_matches(load):
     matches_in_set = db.table("sets").select("*").execute()
@@ -39,18 +40,16 @@ async def sort_matches(load):
                         "match_id" : event['eventId'],
                         "match_name" : f"{event['runners'][0]['runnerName']} vs {event['runners'][1]['runnerName']}",
                     }
-
                     for item in matches_in_set.data:
                         fuzz_ratio = fuzz.token_sort_ratio(item['match_name'], info['match_name'])
                         if fuzz_ratio >= 70:
                             info['uuID'] = item['uuID']
-
-                    value_exists = await exists(table="fanduel", to_match={"uuID" : info['uuID'], "match_name" : info['match_name']})
-                    if value_exists:
-                        print("Exists. Skip")
-                    else:
-                        response = await upload(table="fanduel", info=info)
-                        print(response)
+                            value_exists = await exists(table="fanduel", to_match={"uuID" : info['uuID'], "match_name" : info['match_name']})
+                            if value_exists:
+                                print("Exists. Skip")
+                            else:
+                                response = await upload(table="fanduel", info=info)
+                                print(response)
 
 async def scrape_events():
     matches = db.table("fanduel").select("*").execute()
@@ -94,6 +93,7 @@ async def add_lines(load, uuID):
             elif len(load['attachments']) == 0:
                response = db.table("fanduel").delete().eq("uuID", uuID).execute()
                print(f"Deleting record {uuID} from fanduel table: {response}")
+               await scrape_data()
 
     if len(glitches) > 0:
         await glitch_notifier_fanduel(glitches, match_name, current_set)

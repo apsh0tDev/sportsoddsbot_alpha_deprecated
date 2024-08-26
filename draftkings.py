@@ -38,7 +38,7 @@ async def scrape_tournament(id):
         'requestType' : 'request',
         'proxyCountry' : 'UnitedStates'
     }
-    response = await scrape(data, "FanDuel")
+    response = await scrape(data, "Draftkings")
     if response != None and response != '':
         if 'statusCode' in response['solution'] and response['solution']['statusCode'] != 403:
             is_valid = await verifier(response)
