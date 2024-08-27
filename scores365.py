@@ -90,7 +90,9 @@ async def tidy_up_all_matches(games, tournaments):
                 "uuID" : shortuuid.uuid(),
                 "match_name" : match_name,
                 "tournament" : await get_tournament(tournaments, game['competitionId']),
-                "current_set" : current_set }
+                "current_set" : current_set,
+                "itEnded" : await did_match_finished(game['stages'])
+                }
             games_all.append(info['match_name'])
             value_exists = await exists(table="sets", to_match={"match_name" : info['match_name']})
             if value_exists:
@@ -125,7 +127,7 @@ async def cleaners(data, table):
 
         for record_name in sets_names:
             if record_name not in data:
-                response = db.table("live_matches").delete().match({"match_name" : record_name}).execute()
+                response = db.table("sets").delete().match({"match_name" : record_name}).execute()
                 logger.info(f"Deleting record {record_name} from sets table: {response}")
         print("Done cleaning 🧹")
 
@@ -203,6 +205,14 @@ async def get_current_set(stages):
             break  # Once we find the live set, we can break the loop
 
     return current_set
+
+async def did_match_finished(stages):
+    isEnded = False
+    for stage in stages:
+        if stage['name'] == 'Sets' and 'isEnded' in stage and stage['isEnded'] == True:
+            isEnded = True
+
+    return isEnded
 
 # -- End of Utils
 

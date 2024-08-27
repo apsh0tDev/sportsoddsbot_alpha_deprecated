@@ -89,7 +89,7 @@ async def tidy_up_matches_partial(load):
                         else:
                             response = await upload(table="matches_list", info=info)
                             print(response)
-    await cleaners(events_ids)
+   # await cleaners(events_ids)
     
 
 # -- Cleaners 🧹
@@ -99,12 +99,11 @@ async def cleaners(data):
     matches_table = db.table("matches_list").select("*").eq("source", "Pointsbet").execute()
     matches_ids = [item['match_id'] for item in matches_table.data]
 
-    for record_id in matches_ids:
-        if record_id not in data:
-            response = db.table("matches_list").delete().match({"match_id" : record_id, "source" : "Pointsbet"}).execute()
-            logger.info(f"Deleting record {record_id} from matches_list table: {response}")               
-
-    print("Done cleaning 🧹")
+    for record_id in data:
+        if record_id not in matches_ids:
+            response = db.table("matches_list").delete().match({"match_id"}).execute()
+            logger.info(f"Deleting record {record_id} from matches list table: {response}")            
+    
 # -- Utils
 async def set_default_info(event):
     info = {

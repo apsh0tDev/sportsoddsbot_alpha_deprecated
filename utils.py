@@ -57,3 +57,9 @@ def extract_players(matchup):
 
 def generate_session_id():
     return str(uuid.uuid4())
+
+def get_current_ny_time():
+    # Define New York timezone
+    ny_tz = pytz.timezone('America/New_York')
+    ny_time = datetime.now(ny_tz)
+    return ny_time.strftime('%Y-%m-%d %I:%M %p')
