@@ -54,7 +54,7 @@ async def scrape_by_site(url, site, headless):
 async def get_token(site):
     match site:
         case "DRAFTKINGS":
-            key = os.getenv("SAT_DK")
+            key = os.getenv("DRAFTKINGS_SAT")
             return key
         case "FANDUEL":
             key = os.getenv("FANDUEL_SAT")

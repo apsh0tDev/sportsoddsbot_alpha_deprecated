@@ -26,7 +26,7 @@ fanduel_event_url = "https://sbapi.ny.sportsbook.fanduel.com/api/event-page?_ak=
 draftkings_url = f"https://sportsbook-nash.draftkings.com/sites/US-SB/api/v4/featured/displaygroups/6/live?format=json"
 draftkings_tournaments = "https://sportsbook-nash-usva.draftkings.com/sites/US-VA-SB/api/v5/eventgroups/{id}?format=json"
 draftkings_markets = "https://sportsbook-nash-usva.draftkings.com/sites/US-VA-SB/api/v5/eventgroups/{tournament_id}/categories/{market_id}?format=json"
-
+draftkings_event = "https://sportsbook-nash.draftkings.com/api/sportscontent/dkusva/v1/events/{eventId}/categories?appname=web"
 #Betrivers
 betrivers_url = f"https://ny.betrivers.com/api/service/sportsbook/offering/listview/events?cageCode=212&type=live&pageSize=20&offset=0"
 betrivers_event_url = "https://ny.betrivers.com/api/service/sportsbook/offering/listview/details?eventId={eventId}&cageCode=212"
