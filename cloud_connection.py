@@ -59,3 +59,6 @@ async def get_token(site):
         case "FANDUEL":
             key = os.getenv("FANDUEL_SAT")
             return key
+        case "BETRIVERS":
+            key = os.getenv("BETRIVERS_SAT")
+            return key

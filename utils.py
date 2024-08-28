@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 
 async def verifier(value):
     if value != None and 'solution' in value and 'verified' in value['solution'] and value['solution']['verified'] == True:
-        if "<title>Just a moment...</title>" not in value['solution']['response'] and "Request blocked." not in value['solution']['response'] and "Sorry, you have been blocked" not in value['solution']['response']:
+        if "<title>Just a moment...</title>" not in value['solution']['response'] and "Request blocked." not in value['solution']['response'] and "Sorry, you have been blocked" not in value['solution']['response'] and 'Why have I been blocked?' not in value['solution']['response']:
             return True
         else:
             logger.error("CLOUDFARE BLOCK.")

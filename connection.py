@@ -16,6 +16,7 @@ async def scrape(data, site):
     async with aiohttp.ClientSession(trust_env=True) as session:
         async with session.post(scrappey, headers=headers, json=data) as response:
             if response.status == 200:
+                logger.info(f"Response content type: {response.headers.get('Content-Type')}")
                 return await response.json()
             else:
                 print(response)
