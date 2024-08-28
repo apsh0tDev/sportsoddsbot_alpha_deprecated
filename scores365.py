@@ -74,7 +74,7 @@ async def tidy_up_matches_partial(games, tournaments):
             print(response_scoreboard)
 
     
-    await cleaners(matches_ids, table="live_matches")
+    await cleaners(matches_ids, table="Live")
 
 #---- Handle Set Checker
 async def tidy_up_all_matches(games, tournaments):
@@ -105,31 +105,31 @@ async def tidy_up_all_matches(games, tournaments):
         else:
             print("Not live. Skip")
 
-    await cleaners(games_all, "sets")
+    await cleaners(games_all, "Sets")
 
 
 # -- Cleaners 🧹
 async def cleaners(data, table):
     print("Run cleaners 🧹")
-    if table == "live_matches":
-        matches_table = db.table("live_matches").select("*").execute()
-        matches_ids = [item['match_id'] for item in matches_table.data]
-
+    if table == "Live":
+        matches_list = db.table("live_matches").select("*").execute()
+        matches_ids = [int(item['match_id']) for item in matches_list.data]
         for record_id in matches_ids:
             if record_id not in data:
-                response = db.table("live_matches").delete().match({"match_id" : record_id}).execute()
+                response = db.table("live_matches").delete().eq("match_id", record_id).execute()
                 logger.info(f"Deleting record {record_id} from live matches table: {response}")
+        print("Done cleaning live table 🧹")
+    if table == "Sets":
+        sets_list = db.table("sets").select("*").execute()
+        sets_names = [item['match_name'] for item in sets_list.data]
+        for record_id in sets_names:
+            if record_id not in data:
+                response = db.table("sets").delete().eq("match_name", record_id).execute()
+                logger.info(f"Deleting record {record_id} from sets table: {response}")
+        print("Done cleaning sets table 🧹") 
 
-        print("Done cleaning 🧹")
-    if table == "sets":
-        sets_table = db.table("sets").select("*").execute()
-        sets_names = [item['match_name'] for item in sets_table.data]
-
-        for record_name in sets_names:
-            if record_name not in data:
-                response = db.table("sets").delete().match({"match_name" : record_name}).execute()
-                logger.info(f"Deleting record {record_name} from sets table: {response}")
-        print("Done cleaning 🧹")
+    
+    
 
 # -- Utils
 async def get_match_name(game):
