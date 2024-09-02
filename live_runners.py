@@ -1,7 +1,6 @@
 from db import db
 import asyncio
 import scores365
-from loguru import logger
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 scheduler = AsyncIOScheduler()
@@ -21,15 +20,14 @@ def sleep_bot():
             if job.name == "get_scores":
                 scheduler.remove_job(job_id=job.id)
     
-        print(jobs_names)
-           
+        print(jobs_names)           
             
 
 def live():
     jobs = scheduler.get_jobs()
     jobs_names = [job.name for job in jobs]
     if 'get_scores' not in jobs_names:
-        scheduler.add_job(get_scores, 'interval', minutes=1)
+        scheduler.add_job(get_scores, 'interval', seconds=40)
 
 job_defaults = {
     'coalesce': False,
