@@ -16,7 +16,8 @@ async def scrape(data, site):
     async with aiohttp.ClientSession() as session:
         async with session.post(scrappey, headers=headers, json=data) as response:
             if response.status == 200:
-                return await response.json()
+                text = await response.text(encoding="ISO-8859-1", errors="ignore")  # Ignore decoding errors
+                return json.loads(text)
             else:
                 print(response)
                 logger.error("ERROR")

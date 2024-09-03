@@ -21,8 +21,8 @@ async def scrape_data():
         'requestType' : 'request'
     }
     response = await scrape(data, "365Scores")
-    print(response)
-    """if response == None:
+    
+    if response == None:
         logger.error("Could not get live scores - 365Scores")
     else:
         is_valid = await verifier(response)
@@ -35,7 +35,7 @@ async def scrape_data():
             except Exception as e:
                 logger.error(f"Error Parsing 365Scores - {e}")
         else:
-            logger.error(f"Invalid response - 365Scores")"""
+            logger.error(f"Invalid response - 365Scores")
 
 #---- Handle Live Scores Table
 async def tidy_up_all_matches(games, tournaments):
