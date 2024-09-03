@@ -2,7 +2,7 @@
 betmgm_url = f"https://sports.ny.betmgm.com/en/sports/api/widget/widgetdata?layoutSize=Large&page=SportLobby&sportId=5&widgetId=/mobilesports-v1.0/layout/layout_standards/modules/sportgrid&shouldIncludePayload=true"
 betmgm_events = "https://sports.ny.betmgm.com/cds-api/bettingoffer/fixture-view?x-bwin-accessid=ZjVlNTEzYzAtMGUwNC00YTk1LTg4OGYtZDQ4ZGNhOWY4Mjc1&lang=en-us&country=US&userCountry=US&subdivision=US-XY&offerMapping=All&fixtureIds={id}&state=Latest&includePrecreatedBetBuilder=true&supportVirtual=false&isBettingInsightsEnabled=true&useRegionalisedConfiguration=true&includeRelatedFixtures=false&statisticsModes=All"
 #365Scores
-scores365_url = "https://webws.365scores.com/web/games/allscores/?appTypeId=5&langId=9&timezoneName=America/Caracas&userCountryId=18&sports=3&startDate={startDate}&endDate={endDate}&showOdds=true&onlyLiveGames=true&withTop=true"
+scores365_url = "https://webws.365scores.com/web/games/allscores/?appTypeId=5&langId=9&timezoneName=America/Caracas&userCountryId=18&sports=3&startDate={startDate}&endDate={endDate}&showOdds=true&onlyLiveGames=false&withTop=true"
 
 #Unibet
 unibet_url = "https://www.unibet.com/sportsbook-feeds/views/filter/tennis/all/matches?includeParticipants=true&useCombined=true"

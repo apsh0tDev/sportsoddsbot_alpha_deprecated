@@ -30,7 +30,6 @@ async def scrape_data():
                 load = json.loads(response['solution']['response'])
                 games = load['games']
                 competitions = load['competitions']
-                await tidy_up_matches_partial(games, competitions)
                 await tidy_up_all_matches(games, competitions)
             except Exception as e:
                 logger.error(f"Error Parsing 365Scores - {e}")
@@ -38,20 +37,17 @@ async def scrape_data():
             logger.error(f"Invalid response - 365Scores")
 
 #---- Handle Live Scores Table
-async def tidy_up_matches_partial(games, tournaments):
-    matches = db.table("matches_list").select("*").match({"source" : "BetMGM"}).execute()
-    matches_names = [item['match_name'] for item in matches.data]
-
+async def tidy_up_all_matches(games, tournaments):
     matches_to_handle = []
+    matches_to_schedule = []
+    live_sets = ["Set 1", "Set 2", "Set 3", "Set 4", "Set 5"]
     for game in games:
-        if game['statusText'] != "Scheduled":
-            match_name = await get_match_name(game)
-            for item in matches_names:
-                fuzz_ratio = fuzz.token_sort_ratio(item, match_name)
-                if fuzz_ratio >= 80:
-                    matches_to_handle.append(game)
-        else:
-            print("Scheduled. Skip")
+        if game['statusText'] == "Scheduled":
+            matches_to_schedule.append(game)
+        elif game['statusText'] in live_sets:
+            matches_to_handle.append(game)
+        elif game['statusText'] == "Final" and 'justEnded' in game and game['justEnded'] == True:
+            matches_to_handle.append(game)
 
     matches_ids = []
     for match in matches_to_handle:
@@ -72,64 +68,40 @@ async def tidy_up_matches_partial(games, tournaments):
             response_scoreboard = await upload("scoreboard", scores_info)
             print(response_live)
             print(response_scoreboard)
-
     
-    await cleaners(matches_ids, table="Live")
+    await cleaners(matches_ids, "live_matches")
 
-#---- Handle Set Checker
-async def tidy_up_all_matches(games, tournaments):
-    games_all = []
-    for game in games:
-        if game['statusText'] != "Scheduled":
-            match_name = await get_match_name(game)
-            current_set = await get_current_set(game['stages'])
-            if current_set == None:
-                if game['statusText'] == "Final":
-                    current_set = "Final" 
-            info = {
-                "uuID" : shortuuid.uuid(),
-                "match_name" : match_name,
-                "tournament" : await get_tournament(tournaments, game['competitionId']),
-                "current_set" : current_set,
-                "itEnded" : await did_match_finished(game['stages'])
-                }
-            games_all.append(info['match_name'])
-            value_exists = await exists(table="sets", to_match={"match_name" : info['match_name']})
-            if value_exists:
-                response = await update(table="sets", to_match={"match_name" : info['match_name']}, info={'current_set' : info['current_set']})
-                print(response)
-            else:
-                response = await upload(table="sets", info=info)
-                print(response)
+    #Schedule
+    await handle_schedule(matches_to_schedule)
 
+#---- Handle Schedule
+async def handle_schedule(matches):
+    for match in matches:
+        info = await set_schedule_info(match)
+        to_match = { "match_name" : info['match_name'], "match_id" : info['match_id'] }
+        match_exists = await exists(table="schedule", to_match=to_match)
+        if match_exists:
+            print("Match exists, skip")
         else:
-            print("Not live. Skip")
+            response = await upload(table="schedule", info=info)
+            print(response)
 
-    await cleaners(games_all, "Sets")
-
+    matches_ids = [item['id'] for item in matches]
+    await cleaners(matches_ids, "schedule")
 
 # -- Cleaners 🧹
 async def cleaners(data, table):
+    table_name = table
     print("Run cleaners 🧹")
-    if table == "Live":
-        matches_list = db.table("live_matches").select("*").execute()
-        matches_ids = [int(item['match_id']) for item in matches_list.data]
-        for record_id in matches_ids:
-            if record_id not in data:
-                response = db.table("live_matches").delete().eq("match_id", record_id).execute()
-                logger.info(f"Deleting record {record_id} from live matches table: {response}")
-        print("Done cleaning live table 🧹")
-    if table == "Sets":
-        sets_list = db.table("sets").select("*").execute()
-        sets_names = [item['match_name'] for item in sets_list.data]
-        for record_id in sets_names:
-            if record_id not in data:
-                response = db.table("sets").delete().eq("match_name", record_id).execute()
-                logger.info(f"Deleting record {record_id} from sets table: {response}")
-        print("Done cleaning sets table 🧹") 
+    table = db.table(table_name).select("*").execute()
+    ids = [int(item['match_id']) for item in table.data]
 
-    
-    
+    for record_id in ids:
+        if record_id not in data:
+            logger.info(f"Deleting {record_id} from {table_name} table")
+            db.table(table_name).delete().eq("match_id", record_id).execute()
+    print("Done cleaning 🧹")  
+
 
 # -- Utils
 async def get_match_name(game):
@@ -151,12 +123,12 @@ async def get_match_scores(scores, teamName):
     teamB_scores = []
     if teamName == "teamA":
         for score in scores:
-            if score['name'] == "Set 1" or score['name'] == "Set 2" or score['name'] == "Set 3":
+            if score['name'] == "Set 1" or score['name'] == "Set 2" or score['name'] == "Set 3" or score['name'] == "Set 4" or score['name'] == "Set 5":
                 teamA_scores.append(int(score['homeCompetitorScore']) if score['homeCompetitorScore'] > 0 else 0)
         return teamA_scores
     elif teamName == "teamB":
         for score in scores:
-            if score['name'] == "Set 1" or score['name'] == "Set 2" or score['name'] == "Set 3":
+            if score['name'] == "Set 1" or score['name'] == "Set 2" or score['name'] == "Set 3" or score['name'] == "Set 4" or score['name'] == "Set 5":
                 teamB_scores.append(int(score['awayCompetitorScore']) if score['awayCompetitorScore'] > 0 else 0)
         return teamB_scores
     
@@ -164,13 +136,14 @@ async def set_match_info(game, tournaments):
     info = {
         "match_id" : game['id'],
         "source" : "365Scores",
-        "status" : "Live",
+        "status" : "Final" if game['statusText'] == "Final" else "Live",
         "match_name" : f"{game['homeCompetitor']['name']} vs {game['awayCompetitor']['name']}",
         "tournament" : await get_tournament(tournaments=tournaments, id=game['competitionId']),
         "tournament_display_name" : game['competitionDisplayName'],
         "date" : game['startTime'],
         "teamA" : game['homeCompetitor']['name'],
-        "teamB" : game['awayCompetitor']['name']
+        "teamB" : game['awayCompetitor']['name'],
+        "uuID" : shortuuid.uuid()
     }
 
     return info
@@ -184,6 +157,12 @@ async def set_scores_info(game, scoresTeamA, scoresTeamB, statusText):
             period = "Set 2"
         case "Set 3":
             period = "Set 3"
+        case "Set 4":
+            period = "Set 4"
+        case "Set 5":
+            period = "Set 5"
+        case "Final":
+            period = "Final"
  
     info = {
         "match_id" : game['match_id'],
@@ -195,24 +174,19 @@ async def set_scores_info(game, scoresTeamA, scoresTeamB, statusText):
     
     return info
 
-async def get_current_set(stages):
-    current_set = None
+async def set_schedule_info(game):
+    players = await get_players_names(game)
+    match_info = {
+        "match_id" : game['id'],
+        "match_name" : f"{players[0]} vs {players[1]}",
+        "tournament" : game['competitionDisplayName'],
+        "tournament_display_name" : game['competitionDisplayName'],
+        "date" : game['startTime'],
+        "teamA" : players[0].strip(),
+        "teamB" : players[1].strip()
+    }
 
-    for stage in stages:
-        # Check if the stage is a set and is live
-        if "Set" in stage['name'] and stage.get('isLive', False) and not stage.get('isEnded', False):
-            current_set = stage['name']
-            break  # Once we find the live set, we can break the loop
-
-    return current_set
-
-async def did_match_finished(stages):
-    isEnded = False
-    for stage in stages:
-        if stage['name'] == 'Sets' and 'isEnded' in stage and stage['isEnded'] == True:
-            isEnded = True
-
-    return isEnded
+    return match_info
 
 # -- End of Utils
 
