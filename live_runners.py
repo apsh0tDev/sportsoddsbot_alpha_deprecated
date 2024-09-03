@@ -10,7 +10,7 @@ async def get_scores():
 
 def sleep_bot():
     print("RUNNING SLEEP BOT FUNCTION")
-    table = db.table("matches_list").select("*").execute()
+    table = db.table("live_matches").select("*").execute()
     if len(table.data) == 0:
         jobs = scheduler.get_jobs()
         jobs_names = [job.name for job in jobs]
