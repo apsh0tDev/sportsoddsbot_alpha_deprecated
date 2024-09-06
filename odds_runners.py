@@ -1,9 +1,9 @@
 import asyncio
 import betmgm
 import pointsbet
-import fanduel
+import fanduel_old
 import lines_betmgm
-import lines_fanduel
+import lines_fanduel_old
 import lines_pointsbet
 from loguru import logger
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -16,7 +16,7 @@ async def get_matches():
     tasks = [
         betmgm.scrape_data(),
         pointsbet.scrape_data(),
-        fanduel.scrape_data()
+        fanduel_old.scrape_data()
     ]
 
     await asyncio.gather(*tasks)
@@ -25,7 +25,7 @@ async def live_odds():
     tasks = [
         lines_betmgm.scrape_events(),
         lines_pointsbet.scrape_events(),
-        lines_fanduel.scrape_events()
+        lines_fanduel_old.scrape_events()
     ]
 
     await asyncio.gather(*tasks)

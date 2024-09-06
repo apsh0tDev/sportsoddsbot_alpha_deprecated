@@ -1,14 +1,13 @@
-import bs4
-import json
+import json 
 import asyncio
 import constants
 from db import db
-from rich import print
+from rich import print 
 from loguru import logger
-from cloud_connection import scrape_by_site
+from connection import scrape
+from cloud_connection import scrape_b_u
 from actions import exists, update, upload
-from utils import verifier_alt, extract_players
-from glitch_catcher import glitch_catcher_fanduel
+from utils import verifier, extract_players, verifier_alt
 
 async def scrape_events():
     table = db.table("matches_list").select("*").eq("source", "FanDuel").execute()
@@ -17,10 +16,11 @@ async def scrape_events():
 
     if len(table.data) > 0:
         for task in table.data:
-            tasks.append(scrape_event(task['match_id'], task['uuID']))
-            await asyncio.sleep(2)
-
+            tasks.append(scrape_event(task['match_id']))
+            await asyncio.sleep(5)
+    
     results = await asyncio.gather(*tasks, return_exceptions=True)
+
     for result in results:
         if isinstance(result, Exception):
             tasks_status.append("ERROR")
@@ -42,28 +42,56 @@ async def scrape_events():
     else:
         logger.info(f"No tasks for FanDuel at the moment.")
 
-async def scrape_event(match_id, uuID):
+async def scrape_event(match_id):
     logger.info(f"Starting task {match_id} - FanDuel")
-    url = constants.fanduel_event_url.format(id=match_id, tab="all")
-    response = await scrape_by_site(url, "FANDUEL", True)
+    url = constants.fanduel_event_url.format(id=match_id, tab=constants.fanduel_tabs[3]['case'])
+    data = {
+        'cmd' : 'request.get',
+        'url' : constants.fanduel_url,
+        'requestType' : 'request',
+        'proxyCountry' : 'UnitedStates'
+    }
+    response = await scrape(data, "FanDuel")
+    if response != None and response != '':
+        if 'statusCode' in response['solution'] and response['solution']['statusCode'] == 403:
+            print("Forbidden, try backup")
+            alt = await scrape_event_alt(match_id)
+            return alt
+        else:
+            is_valid = await verifier(response)
+            if is_valid:
+                load = json.loads(response['solution']['response'])
+                await tidy_up_and_sort(load)
+                return "DONE"
+            else:
+                print("Not valid, try backup")
+                alt = await scrape_event_alt(match_id)
+                return alt
+    else:
+        print("None response, try backup")
+        alt = await scrape_event_alt(match_id)
+        return alt
+
+
+
+async def scrape_event_alt(match_id):
+    url = constants.fanduel_event_url.format(id=match_id, tab=constants.fanduel_tabs[3]['case'])
+    response = await scrape_b_u(url, "FanDuel")
     if response != None and response != '':
         is_valid = await verifier_alt(response)
         if is_valid:
-            soup = bs4.BeautifulSoup(response, 'html.parser')
-            pre = soup.find("pre")
-            load = json.loads(pre.text)
-            await tidy_up_matches(load, uuID)
-            return "DONE"
+            load = json.loads(response)
+            await tidy_up_and_sort(load)
+            return "DONE" 
         else:
-            logger.info("Invalid response in FanDuel.")
-            return "ERROR"   
+            print("Not valid response from Fanduel.")
+            return "ERROR"
     else:
-        logger.info("None response in FanDuel.")
-        return "ERROR"
-    
-async def tidy_up_matches(load, uuID):
-    if 'attachments' in load:
-        markets_names = []
+        print("None response from Fanduel.")
+        return "ERROR" 
+
+async def tidy_up_and_sort(load):
+    if 'attchments' in load:
         if 'attachments' in load and 'events' in load['attachments']:
             event_key = [key for key in load['attachments']['events']]
             match_name = load['attachments']['events'][event_key[0]]['name']
@@ -74,10 +102,12 @@ async def tidy_up_matches(load, uuID):
                 markets_keys = [key for key in markets]
                 for key in markets_keys:
                     market = markets[key]
-                    markets_names.append(market['marketName'])
                     await market_sorter(market, players, match_name)
-
-        await glitch_catcher_fanduel(markets_names, match_name, uuID)
+                
+        if 'events' not in load['attachments']:
+            logger.info(f"Match {match_name} ended - Deleting...")
+            res = db.table("matches_list").delete().match({"match_name" : match_name, "source" : "FanDuel"}).execute()
+            print(res)
 
 # === Markets
 async def market_sorter(event, players, match_name):
@@ -153,7 +183,6 @@ async def db_actions(to_match, to_update, info, table):
     else:
         response = await upload(info=info, table=table)
         print(response)
-
-
+    
 if __name__ == "__main__":
     asyncio.run(scrape_events())

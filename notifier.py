@@ -91,12 +91,11 @@ async def close_match_action(notification_id):
     print(response)
 
 async def glitch_notifier_fanduel(glitches, match_name, current_set):
-    markets = [item['market_name'] for item in glitches]
-    output = "\n".join(markets)
+    output = "\n".join(glitches)
     text = (
         "👾 **Glitch found in FanDuel!**\n\n"
         f"**Match:** {match_name}\n"
-        f"**Current Set on 365Scores: {current_set}**\n"
+        f"**Current Set on 365Scores:** {current_set}\n"
         f"**Line(s):** \n"
         f"{output}\n\n"
         f"**Time:** {get_current_ny_time()}"

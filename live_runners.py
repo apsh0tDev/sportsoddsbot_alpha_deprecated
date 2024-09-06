@@ -2,15 +2,26 @@ import pytz
 import asyncio
 import scores365
 from db import db
+from glitch_catcher import glitch_catcher_fanduel
 from datetime import datetime,timedelta
 from dateutil.parser import parse
+from loguru import logger
 from dev_notifier import notification
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 scheduler = AsyncIOScheduler()
+logger.add("info.log", level="INFO", rotation="2 weeks")
+logger.add("errors.log", level="WARNING", rotation="2 weeks")
 
 async def running():
     await scores365.scrape_data()
+
+async def glitch_catchers():
+    catchers = [
+        glitch_catcher_fanduel()
+    ]
+    await asyncio.gather(*catchers)
+
 
 def schedule():
     print("CHECKING SCHEDULED DATE")

@@ -9,8 +9,8 @@ from constants import available_markets
 from datetime import datetime, timezone, timedelta
 from notifier import arbitrage_notification, edit_message
 
-logger.add("arbitrage.log", filter=lambda record: "arbitrage" in record["extra"])
-logger.add("notifications.log", filter=lambda record: "notification" in record["extra"])
+logger.add("arbitrage.log", filter=lambda record: "arbitrage" in record["extra"], rotation="2 weeks")
+logger.add("notifications.log", filter=lambda record: "notification" in record["extra"], rotation="2 weeks")
 
 async def call_all_markets():
     tasks = []

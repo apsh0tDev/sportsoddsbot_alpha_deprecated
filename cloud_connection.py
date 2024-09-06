@@ -6,6 +6,7 @@ import cloudscraper
 from rich import print
 from loguru import logger
 from dotenv import load_dotenv
+from dev_notifier import notification
 from scrapingant_client import ScrapingAntClient
 
 load_dotenv()
@@ -16,25 +17,6 @@ headers = { 'Content-Type' : 'application/json' }
 scrappey = f"https://publisher.scrappey.com/api/v1?key={key}"
 scraper = cloudscraper.create_scraper()
 ant_client = ScrapingAntClient(token=ant_key)
-
- 
-async def scrape(data, site):
-    logger.info(f"Scraping from {site}")
-    response = await asyncio.to_thread(scraper.post, scrappey, headers=headers, json=data)
-    return response.json()
-
-async def scrape_b_u(url, site):
-    logger.info(f"Scraping from {site} - Using Alt")
-    try:
-        result = ant_client.general_request(url, proxy_country='US', browser=False)
-        if result.status_code == 200:
-            return result.content
-        else:
-            print(result.content)
-            return None 
-    except Exception as e:
-        print(e)
-        return None
     
 async def scrape_by_site(url, site, headless):
     logger.info(f"Scraping from {site} - Using Alt")
@@ -46,13 +28,16 @@ async def scrape_by_site(url, site, headless):
             return result.content
         else:
             print(result.content)
+            notification(f"{site} - {result.content}")
             return None 
     except Exception as e:
         print(e)
+        notification(f"{site} - {e}")
         return None    
     
 async def get_token(site):
-    match site:
+    name = site.upper()
+    match name:
         case "DRAFTKINGS":
             key = os.getenv("DRAFTKINGS_SAT")
             return key
