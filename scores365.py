@@ -58,6 +58,7 @@ async def tidy_up_all_matches(games, tournaments):
         info = await set_match_info(match, tournaments)
         matches_ids.append(info['match_id'])
         scores_info = await set_scores_info(info, scoresTeamA, scoresTeamB, match['statusText'])
+        scores_info['uuID'] = info['uuID']
         match_exists_in_live_matches = await exists("live_matches", {"source" : "365Scores", "match_id" : info['match_id'], "match_name" : info['match_name']})
         match_exists_in_scoreboard = await exists("scoreboard", {"source" : "365Scores", "match_id" : info['match_id']})
 
@@ -134,17 +135,18 @@ async def get_match_scores(scores, teamName):
         return teamB_scores
     
 async def set_match_info(game, tournaments):
+    justEnded = True if 'justEnded' in game and game['justEnded'] == True else False
     info = {
         "match_id" : game['id'],
         "source" : "365Scores",
-        "status" : "Final" if game['statusText'] == "Final" else "Live",
+        "status" : await set_status_name(game['statusText'], justEnded),
         "match_name" : f"{game['homeCompetitor']['name']} vs {game['awayCompetitor']['name']}",
         "tournament" : await get_tournament(tournaments=tournaments, id=game['competitionId']),
         "tournament_display_name" : game['competitionDisplayName'],
         "date" : game['startTime'],
         "teamA" : game['homeCompetitor']['name'],
         "teamB" : game['awayCompetitor']['name'],
-        "uuID" : shortuuid.uuid()
+        "uuID" : shortuuid.uuid(),
     }
 
     return info
@@ -188,6 +190,15 @@ async def set_schedule_info(game):
     }
 
     return match_info
+
+async def set_status_name(status, justEnded):
+    set_names = ["Set 1", "Set 2", "Set 3", "Set 4", "Set 5"]
+    if status in set_names:
+        return "Live"
+    elif status == "Final" and justEnded:
+        return status
+    else:
+        return "Unknown"
 
 # -- End of Utils
 

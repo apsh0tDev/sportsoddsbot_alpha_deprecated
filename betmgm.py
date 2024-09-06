@@ -51,15 +51,6 @@ async def scrape_data():
                                 print(response)
                             else:
                                 print(f"{info['match_id']} already in table. Skipping.")
-                        
-                        elif match['stage'] == "PreMatch":
-                             print("Move match to schedule")
-                             if match['id'] not in schedule_list_ids:
-                                 prematch = await handle_scheduled_match(match)
-                                 response = db.table("schedule").insert(prematch).execute()
-                                 print(response)
-                             else:
-                                 print(f"{match['id']} already in schedule. Skipping.")
 
                     await cleaners(fixtures, schedule_list_ids, matches_list_ids)
 
@@ -98,24 +89,7 @@ async def cleaners(data, schedule, matches):
             logger.info(f"Deleting record {record_id} from betmgm table: {response}")
 
     print("Done cleaning 🧹")
-    
 
-# -- Schedule 📆
-async def handle_scheduled_match(match):
-    teamA = f"{remove_parentheses(match['participants'][0]['name']['value']) if len(match['participants']) > 0 else "Unknown"}"
-    teamB = f"{remove_parentheses(match['participants'][1]['name']['value']) if len(match['participants']) > 1 else "Unknown"}"
-
-    match_info = {
-        "match_id" : match['id'],
-        "match_name" : match['name']['value'],
-        "tournament" : match['tournament']['name']['value'],
-        "tournament_display_name": match['competition']['name']['value'],
-        "date" : match['startDate'],
-        "teamA" : teamA.strip(),
-        "teamB" : teamB.strip()
-    }
-
-    return match_info
 
 # -- Scores 📆
 async def handle_scores():
