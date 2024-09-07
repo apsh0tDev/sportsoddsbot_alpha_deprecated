@@ -32,6 +32,8 @@ async def glitch_catcher_fanduel(markets=[], match_name="", uuID=""):
         if len(glitches) > 0:
             await glitch_notifier_fanduel(glitches=glitches, match_name=match_name, current_set=current_set)
             logger.bind(glitches=True).info(f"""Glitch was found for match: {match_name} {uuID}\nLines = {glitches}""")
+        else:
+            print("No glitches found.")
     else:
         logger.info(f"Match by uuID {uuID} not found")
 

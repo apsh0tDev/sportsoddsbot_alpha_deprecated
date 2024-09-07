@@ -68,10 +68,12 @@ def wake_up():
             if time_diff <= 0:
                 print("Time for schedule already passed. Run.")
                 scheduler.add_job(running, 'interval', seconds=40)
+                scheduler.add_job(glitch_catchers, 'interval', seconds=40)
                 notification(f"Starting runners. Next match in schedule started at {next_date_str}")
             elif 0 < time_diff <= 300:  # 5 minutes = 300 seconds
                 print("Next match is about to start in 5 minutes.")
                 scheduler.add_job(running, 'interval', seconds=40)
+                scheduler.add_job(glitch_catchers, 'interval', seconds=40)
                 notification(f"Next match is about to start at {next_date_str}. Starting runners.")
             
 def sleep():
@@ -84,6 +86,8 @@ def sleep():
             if job.name == "running":
                 scheduler.remove_job(job_id=job.id)
                 notification(f"No more matches left at the moment. Stop runners.")
+            if job.name == "glitcher_catchers":
+                scheduler.remove_job(job_id=job.id)
 
 
 job_defaults = {

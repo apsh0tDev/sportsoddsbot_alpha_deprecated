@@ -149,7 +149,6 @@ async def db_actions(to_match, to_update, info, table):
     value_exists = await exists(to_match=to_match, table=table)
     if value_exists:
         response = await update(to_match=to_match, info=to_update, table=table)
-        print(response)
     else:
         response = await upload(info=info, table=table)
         print(response)

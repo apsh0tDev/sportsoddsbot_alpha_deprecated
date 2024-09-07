@@ -64,29 +64,16 @@ async def cleaners(data, schedule, matches):
     print("Run cleaners 🧹")
     betmgm_table = db.table("betmgm").select("*").execute()
     betmgm_ids = [item['match_id'] for item in betmgm_table.data]
-    prematch_ids = []
     live_ids = []
     
     for match in data:
-                if match['stage'] == "PreMatch":
-                    prematch_ids.append(match['id'])
-                elif match['stage'] == "Live":
+                if match['stage'] == "Live":
                     live_ids.append(match['id'])
-
-    for record_id in schedule:
-        if record_id not in prematch_ids:
-            response = db.table("schedule").delete().eq("match_id", record_id).execute()
-            logger.info(f"Deleting record {record_id} from schedule table: {response}")
 
     for record_id in matches:
         if record_id not in live_ids:
             response = db.table("matches_list").delete().eq("match_id", record_id).execute()
             logger.info(f"Deleting record {record_id} from matches list table: {response}")
-
-    for record_id in betmgm_ids:
-        if record_id not in live_ids:
-            response = db.table("betmgm").delete().eq("match_id", record_id).execute()
-            logger.info(f"Deleting record {record_id} from betmgm table: {response}")
 
     print("Done cleaning 🧹")
 

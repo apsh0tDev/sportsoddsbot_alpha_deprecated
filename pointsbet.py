@@ -8,7 +8,7 @@ from thefuzz import fuzz
 from loguru import logger
 from actions import exists, upload
 from connection import scrape
-from cloud_connection import scrape_b_u
+from cloud_connection import scrape_by_site
 from utils import verifier, verifier_alt
 
 async def scrape_data():
@@ -22,7 +22,7 @@ async def scrape_data():
     if response != None:
         db.table("sportsbooks").update({'available' : False}).eq("name", "Pointsbet").execute()
         print("None response, try backup.")
-        await scrape_data_backup(constants.pointsbet_competitions_url) 
+        #await scrape_data_backup(constants.pointsbet_competitions_url) 
     else:
         if 'statusCode' in response and 'statusCode' == 200:
             is_valid = await verifier(response)
@@ -32,13 +32,13 @@ async def scrape_data():
             else:
                 db.table("sportsbooks").update({'available' : False}).eq("name", "Pointsbet").execute()
                 print("Response not valid from Pointsbet, try backup.")
-                await scrape_data_backup(constants.pointsbet_competitions_url) 
+                #await scrape_data_backup(constants.pointsbet_competitions_url) 
         else:
             print("Forbidden response to Pointsbet, try backup.")
-            await scrape_data_backup(constants.pointsbet_competitions_url)
+            #await scrape_data_backup(constants.pointsbet_competitions_url)
             
 async def scrape_data_backup(url):
-    response = await scrape_b_u(url, "Pointsbet")
+    response = await scrape_by_site(url, "Fanduel", True)
     is_valid = await verifier_alt(response)
     if is_valid:
         load = json.loads(response)
@@ -61,7 +61,7 @@ async def scrape_matches(load):
 
     for id in competitions_ids:
         url = constants.pointsbet_url.format(competitionId = id)
-        response = await scrape_b_u(url, "Pointsbet")
+        response = await scrape_by_site(url, "Pointsbet")
         is_valid = await verifier_alt(response)
         if is_valid:
             load = json.loads(response)
